@@ -21,7 +21,7 @@
 
 /**
  * @module Framework
- * @version 3.4.9
+ * @version 3.4.5
  */
 
 'use strict';
@@ -130,7 +130,7 @@ function flowwrapper(name) {
 }
 
 global.FLOWSTREAM = function(name) {
-	global.framework_flow = require('./flow');
+	global.framework_flow = require('total.js/flow');
 	global.FLOW = flowwrapper;
 	return flowwrapper(name);
 };
@@ -305,14 +305,14 @@ var _flags;
 var _prefix;
 
 // GO ONLINE MODE
-!global.framework_internal && (global.framework_internal = require('./internal'));
-!global.framework_builders && (global.framework_builders = require('./builders'));
-!global.framework_utils && (global.framework_utils = require('./utils'));
-!global.framework_mail && (global.framework_mail = require('./mail'));
-!global.framework_image && (global.framework_image = require('./image'));
-!global.framework_session && (global.framework_session = require('./session'));
+!global.framework_internal && (global.framework_internal = require('total.js/internal'));
+!global.framework_builders && (global.framework_builders = require('total.js/builders'));
+!global.framework_utils && (global.framework_utils = require('total.js/utils'));
+!global.framework_mail && (global.framework_mail = require('total.js/mail'));
+!global.framework_image && (global.framework_image = require('total.js/image'));
+!global.framework_session && (global.framework_session = require('total.js/session'));
 
-require('./tangular');
+require('total.js/tangular');
 
 function sessionwrapper(name) {
 	if (!name)
@@ -329,7 +329,7 @@ function sessionwrapper(name) {
 }
 
 global.SESSION = function(name) {
-	global.framework_session = require('./session');
+	global.framework_session = require('total.js/session');
 	global.SESSION = sessionwrapper;
 	return sessionwrapper(name);
 };
@@ -355,7 +355,7 @@ function nomemwrapper(name) {
 
 global.NOMEM = global.NOSQLMEMORY = function(name) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 	global.NOMEM = global.NOSQLMEMORY = global.framework_nosql.inmemory;
 	return nomemwrapper(name);
 };
@@ -398,7 +398,7 @@ function filestoragewrapper(name) {
 
 global.FILESTORAGE = function(name) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 	global.FILESTORAGE = filestoragewrapper;
 	return filestoragewrapper(name);
 };
@@ -460,7 +460,7 @@ global.AUTH = function(fn) {
 };
 
 global.WEBSOCKETCLIENT = function(callback) {
-	var ws = require('./websocketclient').create();
+	var ws = require('total.js/websocketclient').create();
 	callback && callback.call(ws, ws);
 	return ws;
 };
@@ -647,14 +647,14 @@ global.$ACTION = function(schema, model, callback, controller) {
 
 		meta.multiple = meta.op.length > 1;
 		meta.schema = o;
-		meta.validate = meta.method !== 'GET';
+		meta.validate = meta.method !== 'GET' && meta.method !== 'DELETE';
 		F.temporary.other[schema] = meta;
 	}
 
 	if (meta.validate) {
 
 		var req = controller ? controller.req : null;
-		if (meta.method === 'PATCH' || meta.method === 'DELETE') {
+		if (meta.method === 'PATCH') {
 			if (!req)
 				req = {};
 			req.$patch = true;
@@ -752,7 +752,7 @@ function performschema(type, schema, model, options, callback, controller, noval
 			model.$$keys = keys;
 			model.$$controller = controller;
 			model[type](options, callback);
-			if (req && req.$patch && req.method && (req.method !== 'PATCH' & req.method !== 'DELETE'))
+			if (req && req.$patch && req.method && req.method !== 'PATCH')
 				delete req.$patch;
 		}
 	}, null, novalidate, workflow, req);
@@ -956,8 +956,8 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.version = 3490;
-	self.version_header = '3.4.9';
+	self.version = 3440;
+	self.version_header = '3.4.5';
 	self.version_node = process.version.toString();
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
 	self.pref = global.PREF;
@@ -967,8 +967,7 @@ function Framework() {
 		trace: true,
 		trace_console: true,
 
-		//nowarnings: process.argv.indexOf('restart') !== -1,
-		nowarnings: true,
+		nowarnings: process.argv.indexOf('restart') !== -1,
 		name: 'Total.js',
 		version: '1.0.0',
 		author: '',
@@ -1030,7 +1029,7 @@ function Framework() {
 		default_request_maxlength: 10,
 		default_websocket_maxlength: 2,
 		default_websocket_encodedecode: true,
-		default_maxopenfiles: 100,
+		default_maxopenfiles: 0,
 		default_timezone: 'utc',
 		default_root: '',
 		default_response_maxage: '11111111',
@@ -1175,7 +1174,6 @@ function Framework() {
 	self.convertors2 = null;
 	self.tests = [];
 	self.errors = [];
-	self.timeouts = [];
 	self.problems = [];
 	self.changes = [];
 	self.server = null;
@@ -1186,8 +1184,8 @@ function Framework() {
 		email: new RegExp('^[a-zA-Z0-9-_.+]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'),
 		url: /http(s)?:\/\/[^,{}\\]*$/i,
 		phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
-		zip: /^[0-9a-z\-\s]{3,20}$/i,
-		uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c|^[0-9a-z]{4,18}[a-z]{2}\d{1}[01]{1}d$/
+		zip: /^\d{5}(?:[-\s]\d{4})?$/,
+		uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c$/
 	};
 
 	self.workers = {};
@@ -1229,24 +1227,15 @@ function Framework() {
 		owners: {},
 		ready: {},
 		ddos: {},
-		service: { redirect: 0, request: 0, file: 0, usage: 0 }
+		service: { redirect: 0, request: 0, file: 0 }
 	};
 
 	self.stats = {
 
-		error: 0,
-
 		performance: {
 			request: 0,
-			message: 0,
-			external: 0,
 			file: 0,
-			open: 0,
-			dbrm: 0,
-			dbwm: 0,
-			online: 0,
-			usage: 0,
-			mail: 0
+			usage: 0
 		},
 
 		other: {
@@ -1352,7 +1341,7 @@ Framework.prototype = {
 		global.NOW = val;
 	},
 	get cluster() {
-		return require('./cluster');
+		return require('total.js/cluster');
 	},
 	get id() {
 		return F.$id;
@@ -1422,7 +1411,7 @@ F.refresh = function() {
 F.prototypes = function(fn) {
 
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 
 	var proto = {};
 	proto.Chunker = framework_utils.Chunker.prototype;
@@ -1789,7 +1778,7 @@ function nosqlwrapper(name) {
 
 F.database = global.NOSQL = F.nosql = function(name) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 	// Someone rewrites F.database
 	if (F.database !== F.nosql)
 		global.NOSQL = F.nosql = nosqlwrapper;
@@ -1817,7 +1806,7 @@ function tablewrapper(name) {
 
 global.TABLE = function(name) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 	global.TABLE = tablewrapper;
 	return tablewrapper(name);
 };
@@ -3103,7 +3092,7 @@ global.MERGE = F.merge = function(url) {
 	if (url[0] === '#')
 		url = sitemapurl(url.substring(1));
 
-	url = F.$version(framework_internal.preparePath(url));
+	url = F.$version(url);
 
 	if (url === 'auto') {
 		// auto-generating
@@ -3113,6 +3102,8 @@ global.MERGE = F.merge = function(url) {
 		}, 500, arg);
 		return F;
 	}
+
+	url = framework_internal.preparePath(url);
 
 	var arr = [];
 
@@ -3941,14 +3932,14 @@ F.$filelocalize = function(req, res, nominify) {
 			return;
 		}
 
-		content = framework_internal.markup(F.translator(req.$language, framework_internal.modificators(content.toString(ENCODING), filename, 'static')), filename);
+		content = framework_internal.markup(F.translator(req.$language, framework_internal.modificators(content.toString(ENCODING), filename, 'static')));
 
 		Fs.lstat(filename, function(err, stats) {
 
 			var mtime = stats.mtime.toUTCString();
 
 			if (CONF.allow_compile_html && CONF.allow_compile && !nominify && (req.extension === 'html' || req.extension === 'htm'))
-				content = framework_internal.compile_html(content, filename, true);
+				content = framework_internal.compile_html(content, filename);
 
 			if (RELEASE) {
 				F.temporary.other[key] = Buffer.from(content);
@@ -3994,9 +3985,8 @@ F.error = function(err, name, uri) {
 		return F;
 
 	if (F.errors) {
-		F.stats.error++;
 		NOW = new Date();
-		F.errors.push({ error: err.stack ? err.stack : err, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW });
+		F.errors.push({ error: err.stack, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW });
 		F.errors.length > 50 && F.errors.shift();
 	}
 
@@ -4187,7 +4177,7 @@ F.$bundle = function(callback) {
 			});
 
 		}, function() {
-			require('./bundles').make(function() {
+			require('total.js/bundles').make(function() {
 				F.directory = HEADERS.workers.cwd = directory = F.path.root(CONF.directory_src);
 				callback();
 			});
@@ -4943,11 +4933,16 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 			}, internal, useRequired, true, undefined);
 			next && next();
 		};
-
-		if (F.$bundling)
-			F.restore(declaration, dir, restorecb);
-		else
+//changed
+		if (F.$bundling) {
 			restorecb();
+			//F.restore(declaration, dir, restorecb);
+		}
+
+		else {
+			restorecb();
+		}
+
 
 		return F;
 	}
@@ -6123,8 +6118,6 @@ function parseQueryArgumentsDecode(val) {
 	}
 }
 
-const QUERY_ALLOWED = { '45': 1, '95': 1, 46: 1, '91': 1, '92': 1 };
-
 function parseQueryArguments(str) {
 
 	var obj = {};
@@ -6182,21 +6175,6 @@ function parseQueryArguments(str) {
 					is = true;
 				}
 				continue;
-			}
-
-			if (!is) {
-
-				var can = false;
-
-				if (n > 47 && n < 58)
-					can = true;
-				else if ((n > 64 && n < 91) || (n > 96 && n < 123))
-					can = true;
-				else if (QUERY_ALLOWED[n])
-					can = true;
-
-				if (!can)
-					break;
 			}
 
 			if (n === 43) {
@@ -6282,7 +6260,7 @@ F.onSchema = function(req, route, callback) {
 	} else
 		schema = GETSCHEMA(route.schema[0], route.schema[1]);
 
-	if (req.method === 'PATCH' || req.method === 'DELETE')
+	if (req.method === 'PATCH')
 		req.$patch = true;
 
 	if (schema)
@@ -6416,13 +6394,13 @@ global.AUDIT = function(name, $, type, message) {
 
 global.NOSQLREADER = function(filename) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 	return new framework_nosql.Database('readonlynosql', filename, true);
 };
 
 global.TABLEREADER = function(filename) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('total.js/nosql');
 	return new framework_nosql.Table('readonlytable', filename, true);
 };
 
@@ -6957,7 +6935,6 @@ function compile_gzip(arr, callback) {
 	var filename = F.path.temp('file' + arr[0].hash().toString().replace('-', '0') + '.gz');
 	arr.push(filename);
 
-	F.stats.performance.open++;
 	var reader = Fs.createReadStream(arr[0]);
 	var writer = Fs.createWriteStream(filename);
 
@@ -8037,23 +8014,18 @@ F.service = function(count) {
 	var keys;
 	var releasegc = false;
 
-	F.temporary.service.request = F.stats.performance.request;
-	F.temporary.service.file = F.stats.performance.file;
-	F.temporary.service.message = F.stats.performance.message;
-	F.temporary.service.mail = F.stats.performance.mail;
-	F.temporary.service.open = F.stats.performance.open;
-	F.temporary.service.dbrm = F.stats.performance.dbrm;
-	F.temporary.service.dbwm = F.stats.performance.dbwm;
-	F.temporary.service.external = F.stats.performance.external;
+	if (F.temporary.service.request)
+		F.temporary.service.request++;
+	else
+		F.temporary.service.request = 1;
 
-	F.stats.performance.external = 0;
-	F.stats.performance.dbrm = 0;
-	F.stats.performance.dbwm = 0;
-	F.stats.performance.request = 0;
-	F.stats.performance.file = 0;
-	F.stats.performance.message = 0;
-	F.stats.performance.mail = 0;
-	F.stats.performance.open = 0;
+	if (F.temporary.service.file)
+		F.temporary.service.file++;
+	else
+		F.temporary.service.file = 1;
+
+	F.stats.performance.request = F.stats.request.request ? F.stats.request.request / F.temporary.service.request : 0;
+	F.stats.performance.file = F.stats.request.file ? F.stats.request.file / F.temporary.service.file : 0;
 
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};
@@ -8311,7 +8283,6 @@ F.listener = function(req, res) {
 	}
 
 	req.path = framework_internal.routeSplit(req.uri.pathname);
-
 	req.processing = 0;
 	req.isAuthorized = true;
 	req.xhr = headers['x-requested-with'] === 'XMLHttpRequest';
@@ -8324,7 +8295,6 @@ F.listener = function(req, res) {
 	else if (F.onLocale)
 		req.$language = F.onLocale(req, res, req.isStaticFile);
 
-	req.on('aborted', onrequesterror);
 	F.reqstats(true, true);
 
 	if (F._length_request_middleware)
@@ -8332,13 +8302,6 @@ F.listener = function(req, res) {
 	else
 		F.$requestcontinue(req, res, headers);
 };
-
-function onrequesterror() {
-	F.reqstats(false);
-	this.success = true;
-	if (this.res)
-		this.res.$aborted = true;
-}
 
 function requestcontinue_middleware(req, res)  {
 	if (req.$total_middleware)
@@ -8375,8 +8338,6 @@ function makeproxy(proxy, req, res) {
 		else
 			request = http.request(uri, makeproxycallback);
 	}
-
-	F.stats.performance.external++;
 
 	request.on('error', makeproxyerror);
 	request.$res = res;
@@ -8420,7 +8381,6 @@ F.$requestcontinue = function(req, res, headers) {
 	// Validates if this request is the file (static file)
 	if (req.isStaticFile) {
 
-		F.stats.performance.file++;
 		tmp = F.temporary.shortcache[req.uri.pathname];
 
 		if (!tmp) {
@@ -8450,8 +8410,6 @@ F.$requestcontinue = function(req, res, headers) {
 
 		return;
 	}
-
-	F.stats.performance.request++;
 
 	if (!PERF[req.method]) {
 		req.$total_status(404);
@@ -9143,7 +9101,7 @@ F.viewCompile = function(body, model, layout, repository, language) {
 F.test = function() {
 	F.isTest = true;
 	F.$configure_configs('config-test', true);
-	require('./test').load();
+	require('total.js/test').load();
 	return F;
 };
 
@@ -9209,7 +9167,9 @@ F.clear = function(callback, isInit) {
 			});
 		}
 
-		F.unlink(files, () => F.rmdir(directories, callback));
+		//F.unlink(files, () => F.rmdir(directories, callback));
+		//changed
+		callback();
 	});
 
 	if (!isInit) {
@@ -9981,9 +9941,6 @@ F.$configure_versions = function(arr, clean) {
 		var key = str.substring(0, index).trim();
 		var filename = str.substring(index + len).trim();
 
-		if (CONF.default_root)
-			key = U.join(CONF.default_root, key);
-
 		if (filename === 'auto') {
 
 			if (ismap)
@@ -9995,9 +9952,7 @@ F.$configure_versions = function(arr, clean) {
 				ON('ready', function() {
 					F.consoledebug('"versions" is getting checksum of ' + key);
 					makehash(key, function(hash) {
-
 						F.consoledebug('"versions" is getting checksum of ' + key + ' (done)');
-
 						if (hash) {
 							var index = key.lastIndexOf('.');
 							filename = key.substring(0, index) + '-' + hash + key.substring(index);
@@ -10647,18 +10602,15 @@ F.$public = function(name, directory, theme) {
 			filename = filename.substring(1);
 	}
 
-	return F.temporary.other[key] = F.$version(framework_internal.preparePath(filename), true);
+	return F.temporary.other[key] = framework_internal.preparePath(F.$version(filename, true));
 };
 
 F.$version = function(name, def) {
 	var tmp;
-
 	if (F.versions)
 		tmp = F.versions[name] || name;
-
 	if (F.onVersion)
 		tmp = F.onVersion(name) || name;
-
 	return tmp === 'auto' && def ? name : (tmp || name);
 };
 
@@ -10713,9 +10665,10 @@ F.lookup = function(req, url, flags, membertype) {
 			return F.temporary.other[key];
 	}
 
-	for (var i = 0; i < F.routes.web.length; i++) {
-		var route = F.routes.web[i];
+	var length = F.routes.web.length;
+	for (var i = 0; i < length; i++) {
 
+		var route = F.routes.web[i];
 		if (route.CUSTOM) {
 			if (!route.CUSTOM(url, req, flags))
 				continue;
@@ -11538,8 +11491,7 @@ FrameworkCacheProto.recycle = function() {
 	persistent && this.savepersistent();
 	CONF.allow_cache_snapshot && this.save();
 	F.service(this.count);
-	CONF.allow_stats_snapshot && F.snapshotstats();
-	F.temporary.service.usage = 0;
+	CONF.allow_stats_snapshot && F.snapshotstats && F.snapshotstats();
 	measure_usage();
 	return this;
 };
@@ -12543,6 +12495,7 @@ ControllerProto.transfer = function(url, flags) {
 		break;
 	}
 
+
 	if (!selected)
 		return false;
 
@@ -12579,13 +12532,13 @@ ControllerProto.meta = function() {
 	var self = this;
 
 	if (arguments[0])
-		self.repository[REPOSITORY_META_TITLE] = arguments[0].encode();
+		self.repository[REPOSITORY_META_TITLE] = arguments[0];
 
 	if (arguments[1])
-		self.repository[REPOSITORY_META_DESCRIPTION] = arguments[1].encode();
+		self.repository[REPOSITORY_META_DESCRIPTION] = arguments[1];
 
 	if (arguments[2] && arguments[2].length)
-		self.repository[REPOSITORY_META_KEYWORDS] = (arguments[2] instanceof Array ? arguments[2].join(', ') : arguments[2]);
+		self.repository[REPOSITORY_META_KEYWORDS] = arguments[2] instanceof Array ? arguments[2].join(', ') : arguments[2];
 
 	if (arguments[3])
 		self.repository[REPOSITORY_META_IMAGE] = arguments[3];
@@ -12680,32 +12633,32 @@ ControllerProto.author = function(value) {
 
 ControllerProto.$title = function(value) {
 	if (value)
-		this.repository[REPOSITORY_META_TITLE] = value.encode();
+		this.repository[REPOSITORY_META_TITLE] = value;
 	return '';
 };
 
 ControllerProto.$title2 = function(value) {
 	var current = this.repository[REPOSITORY_META_TITLE];
 	if (value)
-		this.repository[REPOSITORY_META_TITLE] = (current ? current : '') + value.encode();
+		this.repository[REPOSITORY_META_TITLE] = (current ? current : '') + value;
 	return '';
 };
 
 ControllerProto.$description = function(value) {
 	if (value)
-		this.repository[REPOSITORY_META_DESCRIPTION] = value.encode();
+		this.repository[REPOSITORY_META_DESCRIPTION] = value;
 	return '';
 };
 
 ControllerProto.$keywords = function(value) {
 	if (value && value.length)
-		this.repository[REPOSITORY_META_KEYWORDS] = (value instanceof Array ? value.join(', ') : value).encode();
+		this.repository[REPOSITORY_META_KEYWORDS] = value instanceof Array ? value.join(', ') : value;
 	return '';
 };
 
 ControllerProto.$author = function(value) {
 	if (value)
-		this.repository[REPOSITORY_META_AUTHOR] = value.encode();
+		this.repository[REPOSITORY_META_AUTHOR] = value;
 	return '';
 };
 
@@ -13118,7 +13071,7 @@ function querystring_encode(value, def, key) {
 		return querystring_encode(value[0], def) + (tmp ? tmp : '');
 	}
 
-	return value != null ? value instanceof Date ? encodeURIComponent(value.format()) : typeof(value) === 'string' ? encodeURIComponent(value) : (value + '') : def || '';
+	return value != null ? value instanceof Date ? encodeURIComponent(value.format()) : typeof(value) === 'string' ? encodeURIComponent(value) : value.toString() : def || '';
 }
 
 // @{href({ key1: 1, key2: 2 })}
@@ -13148,14 +13101,15 @@ ControllerProto.href = function(key, value) {
 
 			obj[key] = '\0';
 
-			for (var k in obj) {
-				var val = obj[k];
+			var arr = Object.keys(obj);
+			for (var i = 0, length = arr.length; i < length; i++) {
+				var val = obj[arr[i]];
 				if (val !== undefined) {
 					if (val instanceof Array) {
 						for (var j = 0; j < val.length; j++)
-							str += (str ? '&' : '') + k + '=' + (key === k ? '\0' : querystring_encode(val[j]));
+							str += (str ? '&' : '') + arr[i] + '=' + (key === arr[i] ? '\0' : querystring_encode(val[j]));
 					} else
-						str += (str ? '&' : '') + k + '=' + (key === k ? '\0' : querystring_encode(val));
+						str += (str ? '&' : '') + arr[i] + '=' + (key === arr[i] ? '\0' : querystring_encode(val));
 				}
 			}
 			self[cachekey] = str;
@@ -16129,7 +16083,6 @@ WebSocketClientProto.upgrade = function(container) {
 	F.$events['websocket-begin'] && EMIT('websocket-begin', self.container, self);
 	F.$events.websocket_begin && EMIT('websocket_begin', self.container, self);
 	self.container.$events.open && self.container.emit('open', self);
-	F.stats.performance.online++;
 	return self;
 };
 
@@ -16262,10 +16215,7 @@ WebSocketClientProto.$parse = function() {
 	var current = self.current;
 
 	// check end message
-
-	// Long messages doesn't work because 0x80 still returns 0
-	// if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
-	if (!current.buffer || current.buffer.length <= 2)
+	if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
 		return;
 
 	// webSocked - Opcode
@@ -16349,9 +16299,7 @@ WebSocketClientProto.$readbody = function() {
 };
 
 WebSocketClientProto.$decode = function() {
-
 	var data = this.current.body;
-	F.stats.performance.message++;
 
 	// Buffer
 	if (this.typebuffer) {
@@ -16445,11 +16393,9 @@ WebSocketClientProto.$onerror = function(err) {
 };
 
 WebSocketClientProto.$onclose = function() {
-
 	if (this._isClosed)
 		return;
 
-	F.stats.performance.online--;
 	this.isClosed = true;
 	this._isClosed = true;
 
@@ -16984,12 +16930,6 @@ function extend_request(PROTO) {
 			var key = 'error' + status;
 			F.stats.response[key]++;
 			status !== 500 && F.$events.error && EMIT('error', this, res, this.$total_exception);
-
-			if (status === 408) {
-				if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.url) > 5)
-					F.timeouts.shift();
-			}
-
 			F.$events[key] && EMIT(key, this, res, this.$total_exception);
 		}
 
@@ -17065,7 +17005,7 @@ function extend_request(PROTO) {
 			if (controller.isCanceled)
 				return;
 
-			if (!controller.isTransfer && this.$total_route.isCACHE && !F.temporary.other[this.uri.pathname])
+			if (this.$total_route.isCACHE && !F.temporary.other[this.uri.pathname])
 				F.temporary.other[this.uri.pathname] = this.path;
 
 			if (this.$total_route.isGENERATOR)
@@ -17121,7 +17061,7 @@ function extend_request(PROTO) {
 		var self = this;
 		self.$total_schema = false;
 
-		if (!self.$total_route.schema)
+		if (!self.$total_route.schema || self.method === 'DELETE')
 			return next(self, code);
 
 		if (!self.$total_route.schema[1]) {
@@ -18338,6 +18278,7 @@ function extend_response(PROTO) {
 			headers = U.extend_headers(headers, options.headers);
 
 		F.stats.response.stream++;
+		F.reqstats(false, req.isStaticFile);
 
 		if (req.method === 'HEAD') {
 			res.writeHead(options.code || 200, headers);
@@ -18844,8 +18785,8 @@ function $image_filename(exists, size, isFile, stats, res) {
 }
 
 function response_end(res) {
-
 	F.reqstats(false, res.req.isStaticFile);
+
 	res.success = true;
 
 	if (CONF.allow_reqlimit && F.temporary.ddos[res.req.ip])
@@ -18907,7 +18848,6 @@ process.on('uncaughtException', function(e) {
 
 function fsFileRead(filename, callback, a, b, c) {
 	U.queue('F.files', CONF.default_maxopenfiles, function(next) {
-		F.stats.performance.open++;
 		Fs.readFile(filename, function(err, result) {
 			next();
 			callback(err, result, a, b, c);
@@ -18917,7 +18857,6 @@ function fsFileRead(filename, callback, a, b, c) {
 
 function fsFileExists(filename, callback, a, b, c) {
 	U.queue('F.files', CONF.default_maxopenfiles, function(next) {
-		F.stats.performance.open++;
 		Fs.lstat(filename, function(err, stats) {
 			next();
 			callback(!err && stats.isFile(), stats ? stats.size : 0, stats ? stats.isFile() : false, stats, a, b, c);
@@ -18947,7 +18886,6 @@ function fsStreamRead(filename, options, callback, res) {
 		opt = HEADERS.fsStreamRead;
 
 	U.queue('F.files', CONF.default_maxopenfiles, function(next) {
-		F.stats.performance.open++;
 		var stream = Fs.createReadStream(filename, opt);
 		stream.on('error', NOOP);
 		callback(stream, next, res);
@@ -19726,8 +19664,6 @@ function runsnapshot() {
 
 	var main = {};
 	var stats = {};
-	var lastwarning = 0;
-
 	stats.id = F.id;
 	stats.version = {};
 	stats.version.node = process.version;
@@ -19736,7 +19672,6 @@ function runsnapshot() {
 	stats.pid = process.pid;
 	stats.thread = global.THREAD;
 	stats.mode = DEBUG ? 'debug' : 'release';
-	stats.overload = 0;
 
 	main.pid = process.pid;
 	main.stats = [stats];
@@ -19746,32 +19681,13 @@ function runsnapshot() {
 		var memory = process.memoryUsage();
 		stats.date = NOW;
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
-		stats.rm = F.temporary.service.request || 0;      // request min
-		stats.fm = F.temporary.service.file || 0;         // files min
-		stats.wm = F.temporary.service.message || 0;      // websocket messages min
-		stats.mm = F.temporary.service.mail || 0;         // mail min
-		stats.om = F.temporary.service.open || 0;         // mail min
-		stats.em = F.temporary.service.external || 0;     // external requests min
-		stats.dbrm = F.temporary.service.dbrm || 0;       // DB read min
-		stats.dbwm = F.temporary.service.dbwm || 0;       // DB write min
-		stats.usage = F.temporary.service.usage.floor(2); // app usage in %
+		stats.rm = F.stats.performance.request.floor(2);  // request min
+		stats.fm = F.stats.performance.file.floor(2);     // files min
+		stats.usage = F.stats.performance.usage.floor(2); // app usage in %
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
-		stats.errors = F.stats.error;
+		stats.errors = F.errors.length;
 		stats.timeouts = F.stats.response.error408;
-		stats.uptime = F.cache.count;
-		stats.online = F.stats.performance.online;
-
-		var err = F.errors[F.errors.length - 1];
-		var timeout = F.timeouts[F.timeouts.length - 1];
-
-		stats.lasterror = err ? (err.date.toJSON() + ' ' + (err.error ? err.error : err)) : undefined;
-		stats.lasttimeout = timeout;
-
-		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
-			lastwarning = NOW.getHours();
-			stats.overload++;
-		}
 
 		if (F.isCluster) {
 			if (process.connected) {
@@ -19786,13 +19702,10 @@ function runsnapshot() {
 var lastusagedate;
 
 function measure_usage_response() {
-	var diff = (Date.now() - lastusagedate) - 60;
+	var diff = (Date.now() - lastusagedate) - 50;
 	if (diff > 50)
 		diff = 50;
-	var val = diff < 0 ? 0 : (diff / 50) * 100;
-	if (F.temporary.service.usage < val)
-		F.temporary.service.usage = val;
-	F.stats.performance.usage = val;
+	F.stats.performance.usage = diff <= 2 ? 0 : (diff / 50) * 100;
 }
 
 function measure_usage() {
