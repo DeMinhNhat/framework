@@ -1044,7 +1044,7 @@ function Framework() {
 		// in milliseconds
 		default_request_timeout: 3000,
 		default_dependency_timeout: 1500,
-		default_restbuilder_timeout: 10000,
+		default_restbuilder_timeout: 30000,
 
 		// otherwise is used ImageMagick (Heroku supports ImageMagick)
 		// gm = graphicsmagick or im = imagemagick or magick (new version of ImageMagick)
